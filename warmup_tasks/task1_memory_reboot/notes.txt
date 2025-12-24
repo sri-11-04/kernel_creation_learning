@@ -1,0 +1,19 @@
+Goal: Make pointers feel natural again.
+
+Requirements:
+
+Allocate an integer array dynamically
+
+Fill it using pointer arithmetic only (no arr[i])
+
+Reverse the array in place
+
+Print addresses and values together
+
+What this refreshes:
+
+Pointer math
+
+Heap memory
+
+In-place mutation
