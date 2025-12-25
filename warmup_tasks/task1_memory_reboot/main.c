@@ -61,15 +61,15 @@ int main(void){
     list.str(self);
     printf("len = %d\n",list.size);
 
-    // list.append(self,5);
-    // list.append(self,6);
-    // list.str(self);
-    // printf("len = %d\n",list.size);
+    list.append(self,5);
+    list.append(self,6);
+    list.str(self);
+    printf("len = %d\n",list.size);
 
-    // list.remove(self,5);
-    // list.append(self,7);
-    // list.str(self);
-    // printf("len = %d\n",list.size);
+    list.remove(self,5);
+    list.append(self,7);
+    list.str(self);
+    printf("len = %d\n",list.size);
 
     list.clear(self);
     return 0;
@@ -127,9 +127,10 @@ int pop(IntList *self,int index){
         return -1;
     }
     for (int i=index;i<self->size-1;i++){
-        swap((self->array+index),self->array+index+1);
+        swap((self->array+i),self->array+i+1);
     }
-    return pop_last(self);
+    // self->str(self);
+    return self->l_pop(self);
 }
 
 void shrunk(IntList *self){
@@ -138,9 +139,11 @@ void shrunk(IntList *self){
 }
 
 void swap(int *a,int *b){
+    // printf("before swap a, b is %d, %d\n",*a,*b);
     *a = *a ^ *b;
     *b = *a ^ *b;
     *a = *a ^ *b;
+    // printf("after swap a, b is %d, %d\n",*a,*b);
 }
 
 void reverse(IntList *self){
