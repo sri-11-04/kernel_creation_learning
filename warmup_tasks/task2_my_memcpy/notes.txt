@@ -1,0 +1,21 @@
+🧩 Task 2: Structs + Manual Copy
+Goal: Reconnect with layout and ownership.
+
+Requirements:
+
+Define a struct Student
+
+Dynamically allocate one
+
+Write your own copy_student() without memcpy
+
+Free everything correctly
+
+What this refreshes:
+
+Struct access
+
+Deep vs shallow copy
+
+Memory lifetime
+
