@@ -4,6 +4,7 @@ for notes refer notes.txt
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 
 typedef struct IntList IntList;
@@ -20,6 +21,9 @@ void list_remove(IntList *self,int val);
 int *find_index(IntList *self,int val);
 void _clear_(IntList *self);
 void __str__(IntList *self);
+void my_copy_memcpy(void *source,void *dest, size_t size);
+void my_copy_loop(int *source,int *dest,size_t size);
+void my_memcpy(void *source,void *dest,size_t size);
 
 struct IntList{
     int size;
@@ -100,14 +104,35 @@ void __init__(IntList *self,int *array,int size){
 
 }
 
+void my_copy_memcpy(void *source,void *dest,size_t size){
+    printf("size = %zu\n",size);
+    memcpy(dest,source,size);
+}
+
+void my_copy_loop(int *source,int *dest,size_t size){
+    for (int i = 0; i<size;i++)
+        *(dest+i) = *(source+i);
+}
+
+void my_memcpy(void *src,void *dest,size_t size){
+    unsigned char *s = src;
+    unsigned char *d = dest;
+
+    while(size--){
+        *d++ = *s++;
+    }
+}
+
+
 void resize(IntList *self,size_t cap){
     int *temp_arr = malloc(cap * sizeof *temp_arr);
     if (!temp_arr){
         printf("resize failed, attempting to resize again!!!!\n");
         return resize(self,cap);
     }
-    for (int i = 0; i<self->size;i++)
-        *(temp_arr+i) = *(self->array+i);
+    // my_copy_memcpy(self->array,temp_arr,sizeof(int) * self->size);
+    // my_copy_loop(self->array,temp_arr,self->size);
+    my_memcpy(self->array,temp_arr,sizeof(int) * self->size);
     free(self->array);
     self->array = temp_arr;
     self->capacity = cap;
@@ -176,6 +201,7 @@ void list_remove(IntList *self,int val){
 
 void _clear_(IntList *self){
     free(self->array);
+    self->array = NULL;
 }
 
 void __str__(IntList *self){
