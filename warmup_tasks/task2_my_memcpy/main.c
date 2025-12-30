@@ -38,7 +38,10 @@ int main(void){
 
 void copy_student(void *src, void *dest, size_t size){
     unsigned char *s = src,*d = dest;
-    while (size--) *d++ = *s++;
+    while (size--) {
+        printf("char %c and int is %d\n",*s,*d);
+        *d++ = *s++;
+    };
 }
 
 void print_stu_struct(Student *stu){
