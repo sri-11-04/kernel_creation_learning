@@ -39,7 +39,7 @@ int main(void){
 void copy_student(void *src, void *dest, size_t size){
     unsigned char *s = src,*d = dest;
     while (size--) {
-        printf("char %c and int is %d\n",*s,*d);
+        printf("char %c and int is %d\n",*s,*s);
         *d++ = *s++;
     };
 }

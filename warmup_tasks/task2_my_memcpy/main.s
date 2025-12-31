@@ -100,7 +100,7 @@ copy_student:
 	movq	%rax, -8(%rbp)
 	jmp	.L7
 .L8:
-	movq	-8(%rbp), %rax
+	movq	-16(%rbp), %rax
 	movzbl	(%rax), %eax
 	movzbl	%al, %edx
 	movq	-16(%rbp), %rax
