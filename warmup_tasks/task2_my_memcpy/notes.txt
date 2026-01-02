@@ -19,3 +19,17 @@ Deep vs shallow copy
 
 Memory lifetime
 
+
+
+Note: from the chat gpt...
+    memcpy is shallow copy only because byte by byte will copy the heap not the heap value,
+    if we want to handle the ownership we need to use our logic for deepcopy.
+
+    a pointers size is 8 bytes no matter what the type is, in 64bit sys it will be 8 bytes and in 32bits it will be 4 bytes.
+
+    also some mini things like we cannot assign a heap memory a direct value like char *name = "helo"; we should copy the value from the static "helo" to heap 'name'
+
+    (void*)0 == NULL (as NULL is a MACRO fro (void *)0)
+
+    memcpy and memmove are dif in handling the overlaping byte (memmove handle that)
+

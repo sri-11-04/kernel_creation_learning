@@ -1,0 +1,24 @@
+🧩 Task 3: Rebuild Tiny libc
+
+Goal: Think without safety nets.
+
+Implement:
+
+my_strlen
+
+my_strcpy
+
+my_memset
+
+my_memcmp
+
+Rules:
+
+No <string.h>
+
+Use pointers, not indexing
+
+Handle edge cases
+
+This is peak kernel warm-up 🔥.
+
