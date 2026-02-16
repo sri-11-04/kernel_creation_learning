@@ -1,0 +1,26 @@
+The "Mastery" Challenge: The Ultimate Singly Linked List
+Your goal is to build a Singly Linked List in C that handles both basic and "interview-grade" advanced operations. 
+Part 1: The Essentials (Warm-up)
+    Implement these core methods first. They ensure you can handle the basic structure and pointer updates. 
+    void insert_head(Node** head, int data): Add a node at the very beginning.
+    void insert_tail(Node** head, int data): Add a node at the end.
+    void insert_at(Node** head, int data, int index): Insert at a specific 0-based position.
+    void delete_val(Node** head, int value): Find and remove the first node containing this value.
+    void delete_list(Node** head): Free every node in the list and set head to NULL to prevent memory leaks. 
+Part 2: The "Logic" Methods (Intermediate)
+    These require you to think about traversal and multiple pointers. 
+    Reverse In-Place: void reverse(Node** head) – You must reverse the list without creating a new one.
+    Middle Finder: Node* find_middle(Node* head) – Use the "Fast and Slow Pointer" (Tortoise and Hare) technique to find the middle in a single pass.
+    Cycle Detection: int has_cycle(Node* head) – Detect if the list accidentally loops back on itself.
+    N-th from End: int get_nth_from_last(Node* head, int n) – Return the data of the node that is 
+    positions away from the tail. 
+Part 3: The "Brain Burners" (Advanced)
+    These are often asked in high-level technical interviews. 
+    Merge Two Sorted Lists: Node* merge_sorted(Node* listA, Node* listB) – Combine two already sorted lists into one final sorted list.
+    Remove Duplicates: void remove_duplicates(Node* head) – Efficiently clean an unsorted list of any duplicate values.
+    Palindrome Check: int is_palindrome(Node* head) – Determine if the list's data reads the same forward and backward.
+    Sort the List: void sort_list(Node** head) – Implement Merge Sort on the linked list (Bubblesort is too easy!). 
+Pro-Tips for C Implementation
+    Always Check malloc: Never assume memory allocation worked. Always check if (newNode == NULL).
+    Pointer to Pointer: Notice that many methods use Node** head. This allows your function to actually change where the "Head" points in the caller's scope.
+    Valgrind is Your Friend: If you're on Linux/macOS, use Valgrind to check for memory leaks after running your delete_list function. 
