@@ -1,0 +1,3 @@
+offset of and container of is used when working with the struct
+
+offsetof is used to find the offset (byte from start of the struct) of a member of the struct 
