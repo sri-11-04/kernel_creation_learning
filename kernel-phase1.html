@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KERNEL PHASE 1 — SYSTEMS C</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Bebas+Neue&family=Space+Mono:wght@400;700&display=swap');
+
+  :root {
+    --bg: #080c0a;
+    --surface: #0d1410;
+    --border: #1a2e1f;
+    --green: #00ff6a;
+    --green-dim: #00c44f;
+    --green-dark: #003d18;
+    --amber: #ffb300;
+    --red: #ff3b3b;
+    --text: #c8f0d4;
+    --muted: #4a6b52;
+    --white: #e8f5ec;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* scanline overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,255,106,0.015) 2px,
+      rgba(0,255,106,0.015) 4px
+    );
+    pointer-events: none;
+    z-index: 1000;
+  }
+
+  .header {
+    border-bottom: 1px solid var(--border);
+    padding: 2rem 2.5rem 1.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .header::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--green), transparent);
+    animation: scan 4s ease-in-out infinite;
+  }
+
+  @keyframes scan {
+    0%, 100% { opacity: 0; transform: scaleX(0.3); }
+    50% { opacity: 1; transform: scaleX(1); }
+  }
+
+  .header-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .phase-label {
+    font-size: 0.65rem;
+    letter-spacing: 0.3em;
+    color: var(--green);
+    text-transform: uppercase;
+    margin-bottom: 0.3rem;
+  }
+
+  h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(2.5rem, 8vw, 5.5rem);
+    color: var(--white);
+    letter-spacing: 0.05em;
+    line-height: 0.9;
+  }
+
+  h1 span {
+    color: var(--green);
+    text-shadow: 0 0 30px rgba(0,255,106,0.5);
+  }
+
+  .header-meta {
+    text-align: right;
+  }
+
+  .total-time {
+    font-size: 0.65rem;
+    color: var(--muted);
+    letter-spacing: 0.2em;
+    margin-bottom: 0.3rem;
+  }
+
+  .time-big {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.5rem;
+    color: var(--amber);
+    text-shadow: 0 0 20px rgba(255,179,0,0.4);
+    letter-spacing: 0.05em;
+  }
+
+  .time-sub {
+    font-size: 0.6rem;
+    color: var(--muted);
+    letter-spacing: 0.2em;
+  }
+
+  /* Progress bar */
+  .global-progress {
+    margin-top: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .progress-track {
+    flex: 1;
+    height: 4px;
+    background: var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--green-dark), var(--green));
+    transition: width 0.5s ease;
+    position: relative;
+  }
+
+  .progress-fill::after {
+    content: '';
+    position: absolute;
+    right: 0; top: -2px;
+    width: 2px; height: 8px;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+  }
+
+  .progress-pct {
+    font-size: 0.7rem;
+    color: var(--green);
+    min-width: 3rem;
+    text-align: right;
+  }
+
+  /* Main grid */
+  .main {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  @media (max-width: 900px) { .main { grid-template-columns: 1fr; } }
+
+  .module {
+    border-right: 1px solid var(--border);
+    padding: 2rem 2.5rem;
+  }
+
+  .module:last-child { border-right: none; }
+
+  .module-header {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+
+  .module-num {
+    font-size: 0.6rem;
+    color: var(--muted);
+    letter-spacing: 0.3em;
+    margin-bottom: 0.3rem;
+  }
+
+  .module-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.5rem;
+    letter-spacing: 0.08em;
+    color: var(--white);
+    line-height: 1.1;
+  }
+
+  .module-time-badge {
+    font-size: 0.6rem;
+    color: var(--amber);
+    letter-spacing: 0.2em;
+    padding: 0.3rem 0.6rem;
+    border: 1px solid rgba(255,179,0,0.2);
+    background: rgba(255,179,0,0.05);
+    white-space: nowrap;
+    margin-top: 0.2rem;
+  }
+
+  /* Tasks */
+  .task {
+    margin-bottom: 1rem;
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+  }
+
+  .task-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.6rem 0.8rem;
+    border: 1px solid transparent;
+    transition: all 0.2s;
+  }
+
+  .task:hover .task-row {
+    border-color: var(--border);
+    background: rgba(0,255,106,0.03);
+  }
+
+  .task.done .task-row {
+    background: rgba(0,255,106,0.05);
+    border-color: var(--green-dark);
+  }
+
+  .task-check {
+    width: 14px;
+    height: 14px;
+    border: 1px solid var(--muted);
+    flex-shrink: 0;
+    margin-top: 0.15rem;
+    position: relative;
+    transition: all 0.2s;
+  }
+
+  .task.done .task-check {
+    border-color: var(--green);
+    background: var(--green);
+  }
+
+  .task.done .task-check::after {
+    content: '✓';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 9px;
+    color: var(--bg);
+    font-weight: bold;
+  }
+
+  .task-content { flex: 1; }
+
+  .task-name {
+    font-size: 0.78rem;
+    color: var(--text);
+    line-height: 1.4;
+    transition: color 0.2s;
+  }
+
+  .task.done .task-name {
+    color: var(--muted);
+    text-decoration: line-through;
+    text-decoration-color: var(--green-dark);
+  }
+
+  .task-detail {
+    font-size: 0.62rem;
+    color: var(--muted);
+    margin-top: 0.2rem;
+    line-height: 1.4;
+  }
+
+  .task-hrs {
+    font-size: 0.6rem;
+    color: var(--amber);
+    white-space: nowrap;
+    margin-top: 0.15rem;
+  }
+
+  /* Challenge blocks */
+  .challenge-block {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    border: 1px solid var(--green-dark);
+    background: linear-gradient(135deg, rgba(0,255,106,0.03), transparent);
+    position: relative;
+  }
+
+  .challenge-block::before {
+    content: 'BUILD';
+    position: absolute;
+    top: -0.5rem; left: 0.8rem;
+    font-size: 0.55rem;
+    letter-spacing: 0.3em;
+    color: var(--green);
+    background: var(--bg);
+    padding: 0 0.4rem;
+  }
+
+  .challenge-block p {
+    font-size: 0.7rem;
+    color: var(--text);
+    line-height: 1.6;
+  }
+
+  .challenge-block code {
+    display: block;
+    margin-top: 0.5rem;
+    color: var(--green);
+    font-size: 0.65rem;
+    line-height: 1.8;
+  }
+
+  /* Schedule section */
+  .schedule {
+    padding: 2rem 2.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .section-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.35em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .week-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+  }
+
+  @media (max-width: 700px) { .week-grid { grid-template-columns: repeat(2, 1fr); } }
+
+  .week-card {
+    border: 1px solid var(--border);
+    padding: 1rem;
+    position: relative;
+    transition: border-color 0.2s;
+  }
+
+  .week-card:hover { border-color: var(--muted); }
+
+  .week-card.active {
+    border-color: var(--green);
+    box-shadow: 0 0 20px rgba(0,255,106,0.05);
+  }
+
+  .week-card.active::before {
+    content: '◉ CURRENT';
+    position: absolute;
+    top: -0.45rem; right: 0.6rem;
+    font-size: 0.5rem;
+    letter-spacing: 0.25em;
+    color: var(--green);
+    background: var(--bg);
+    padding: 0 0.3rem;
+  }
+
+  .week-num {
+    font-size: 0.55rem;
+    color: var(--muted);
+    letter-spacing: 0.3em;
+    margin-bottom: 0.3rem;
+  }
+
+  .week-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.1rem;
+    color: var(--white);
+    letter-spacing: 0.05em;
+    margin-bottom: 0.5rem;
+    line-height: 1.1;
+  }
+
+  .week-hrs {
+    font-size: 0.65rem;
+    color: var(--amber);
+    margin-bottom: 0.5rem;
+  }
+
+  .week-desc {
+    font-size: 0.62rem;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  /* Rules section */
+  .rules {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-top: 1px solid var(--border);
+  }
+
+  @media (max-width: 700px) { .rules { grid-template-columns: 1fr; } }
+
+  .rules-col {
+    padding: 2rem 2.5rem;
+    border-right: 1px solid var(--border);
+  }
+
+  .rules-col:last-child { border-right: none; }
+
+  .rule-item {
+    display: flex;
+    gap: 0.8rem;
+    margin-bottom: 0.8rem;
+    align-items: flex-start;
+  }
+
+  .rule-num {
+    font-size: 0.6rem;
+    color: var(--green);
+    min-width: 1.2rem;
+    margin-top: 0.1rem;
+  }
+
+  .rule-text {
+    font-size: 0.72rem;
+    color: var(--text);
+    line-height: 1.5;
+  }
+
+  .rule-sub {
+    font-size: 0.62rem;
+    color: var(--muted);
+    margin-top: 0.15rem;
+  }
+
+  /* OS map */
+  .os-map {
+    padding: 2rem 2.5rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .map-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+  }
+
+  @media (max-width: 700px) { .map-grid { grid-template-columns: 1fr; } }
+
+  .map-cell {
+    background: var(--bg);
+    padding: 1rem;
+    position: relative;
+  }
+
+  .map-from {
+    font-size: 0.6rem;
+    color: var(--muted);
+    letter-spacing: 0.2em;
+    margin-bottom: 0.3rem;
+  }
+
+  .map-concept {
+    font-size: 0.8rem;
+    color: var(--green);
+    margin-bottom: 0.4rem;
+  }
+
+  .map-arrow {
+    font-size: 0.6rem;
+    color: var(--border);
+    margin-bottom: 0.3rem;
+  }
+
+  .map-to {
+    font-size: 0.7rem;
+    color: var(--text);
+    line-height: 1.4;
+  }
+
+  /* Footer */
+  footer {
+    padding: 1.5rem 2.5rem;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .footer-motto {
+    font-size: 0.65rem;
+    color: var(--muted);
+    letter-spacing: 0.25em;
+  }
+
+  .footer-motto span { color: var(--green); }
+
+  .blink {
+    animation: blink 1.2s step-end infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  /* Completion status */
+  .mod-progress {
+    font-size: 0.6rem;
+    color: var(--muted);
+    margin-top: 0.3rem;
+  }
+
+  .mod-progress span { color: var(--green); }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-top">
+    <div>
+      <div class="phase-label">▸ KERNEL DEVELOPMENT TRACK</div>
+      <h1>SYSTEMS <span>C</span><br>PHASE ONE</h1>
+    </div>
+    <div class="header-meta">
+      <div class="total-time">TOTAL CHALLENGE</div>
+      <div class="time-big" id="totalTime">0 / 120</div>
+      <div class="time-sub">HOURS COMMITTED</div>
+    </div>
+  </div>
+  <div class="global-progress">
+    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.2em">PROGRESS</span>
+    <div class="progress-track">
+      <div class="progress-fill" id="globalBar" style="width:0%"></div>
+    </div>
+    <span class="progress-pct" id="globalPct">0%</span>
+  </div>
+</header>
+
+<div class="main">
+
+  <!-- MODULE 1 -->
+  <div class="module" id="mod1">
+    <div class="module-header">
+      <div>
+        <div class="module-num">MODULE 01</div>
+        <div class="module-title">MEMORY AS<br>THE PROTAGONIST</div>
+        <div class="mod-progress"><span id="m1done">0</span> / 8 tasks</div>
+      </div>
+      <div class="module-time-badge" id="m1badge">0 / 40 HRS</div>
+    </div>
+
+    <div class="task" onclick="toggle(this)" data-hrs="4">
+      <div class="task-row">
+        <div class="task-check"></div>
+        <div class="task-content">
+          <div class="task-name">Pointer arithmetic — deep mechanics</div>
+          <div class="task-detail">Why <code>p+1</code> ≠ <code>(char*)p + 1</code>. Write test cases proving type-width scaling.</div>
+          <div class="task-hrs">4 hrs</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="task" onclick="toggle(this)" data-hrs="3">
+      <div class="task-row">
+        <div class="task-check"></div>
+        <div class="task-content">
+          <div class="task-name">const correctness — all four forms</div>
+          <div class="task-detail">const T*, T* const, const T* const, non-const. Enforce in every function signature you write.</div>
+          <div class="task-hrs">3 hrs</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="task" onclick="toggle(this)" data-hrs="6">
+      <div class="task-row">
+        <div class="task-check"></div>
+        <div class="task-content">
+          <div class="task-name">Struct layout, padding, offsetof</div>
+          <div class="task-detail">Predict struct size before sizeof. Use offsetof to verify. Reorder fields to minimize padding.</div>
+          <div class="task-hrs">6 hrs</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="task" onclick="toggle(this)" data-hrs="3">
+      <div class="task-row">
+        <div class="task-check"></div>
+        <div class="task-content">
+          <div class="task-name">Flexible array members</div>
+          <div class="task-detail">struct node { int len; char data[]; }. When and why. Compare to trailing [1] trick.</div>
+          <div class="task-hrs">3 hrs</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="task" onclick="toggle(this)" data-hrs="5">
+      <div class="task-row">
+        <div class="task-check"></div>
+        <div class="task-content">
+          <div class="task-name">Bitfields — understand the distrust</div>
+          <div class="task-detail">Why kernels avoid them (compiler-dependent layout, no atomic ops). Simulate with masks instead.</div>
+          <div class="task-hrs">5 hrs</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="task" onclick="toggle(this)" data-hrs="6">
+      <div class="task-row">
+        <div class="task-check"></div>
+        <div class="task-content">
+          <div class="task-name">Aliasing rules + strict aliasing</div>
+          <div class="task-detail">What UB looks like when aliasing fires. memcpy vs union trick. -fno-strict-aliasing and when it matters.</div>
+          <div class="task-hrs">6 hrs</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="task" onclick="toggle(this)" data-hrs="5">
+      <div class="task-row">
+        <div class="task-check"></div>
+        <div class="task-content">
+          <div class="task-name">restrict qualifier</div>
+          <div class="task-detail">Write memcpy with and without restrict. View assembly diff. Understand the compiler promise.</div>
+          <div class="task-hrs">5 hrs</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="task" onclick="toggle(this)" data-hrs="8">
+      <div class="task-row">
+        <div class="task-check"></div>
+        <div class="task-content">
+          <div class="task-name">Write a "memory map" program</div>
+          <div class="task-detail">Print address, type-size, alignment for 10 different types/structs. Your first mental model of layout.</div>
+          <div class="task-hrs">8 hrs</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="challenge-block">
+      <p>Final challenge: write a struct that perfectly matches a 64-byte cache line with zero wasted bytes. Prove it.</p>
+      <code>
+        sizeof(your_struct) == 64<br>
+        zero padding detected
+      </code>
+    </div>
+  </div>
+
+  <!-- MODULE 2 -->
+  <div class="module" id="mod2">
+    <div class="module-header">
+      <div>
+        <div class="module-num">MODULE 02</div>
+        <div class="module-title">TINY LIBC<br>FOR REAL</div>
+        <div class="mod-progress"><span id="m2done">0</span> / 7 tasks</div>
+      </div>
+      <div class="module-time-badge" id="m2badge">0 / 40 HRS</div>
+    </div>
+
+    <div class="task" onclick="toggle(this)" data-hrs="6">
+      <div class="task-row">
+        <div class="task-check"></div>
+        <div class="task-content">
+          <div class="task-name">memcpy — naive then optimized</div>
+          <div class="task-detail">Byte copy first. Then word-at-a-time. Understand alignment requirements. No overlap handling yet.</div>
+          <div class="task-hrs">6 hrs</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="task" onclick="toggle(this)" data-hrs="8">
+      <div class="task-row">
+        <div class="task-check"></div>
+        <div class="task-content">
+          <div class="task-name">memmove — the overlap problem</div>
+          <div class="task-detail">Draw every overlap case on paper first. Copy direction depends on pointer relationship. Test all 3 cases.</div>
+          <div class="task-hrs">8 hrs</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="task" onclick="toggle(this)" data-hrs="3">
+      <div class="task-row">
+        <div class="task-check"></div>
+        <div class="task-content">
+          <div class="task-name">memset</div>
+          <div class="task-detail">Why value is int not char. Byte fill loop. Optimize for word writes on aligned addresses.</div>
+          <div class="task-hrs">3 hrs</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="task" onclick="toggle(this)" data-hrs="4">
+      <div class="task-row">
+        <div class="task-check"></div>
+        <div class="task-content">
+          <div class="task-name">strlen + strcpy — then ban strcpy</div>
+          <div class="task-detail">Implement both. Document why strcpy is dangerous (no bounds). Implement strlcpy or strncpy_s instead.</div>
+          <div class="task-hrs">4 hrs</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="task" onclick="toggle(this)" data-hrs="5">
+      <div class="task-row">
+        <div class="task-check"></div>
+        <div class="task-content">
+          <div class="task-name">Integer → string (no heap, no printf)</div>
+          <div class="task-detail">itoa into a caller-supplied buffer. Handle base 10 and 16. Handle negatives. Kernel-printk style.</div>
+          <div class="task-hrs">5 hrs</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="task" onclick="toggle(this)" data-hrs="6">
+      <div class="task-row">
+        <div class="task-check"></div>
+        <div class="task-content">
+          <div class="task-name">Write documentation comments</div>
+          <div class="task-detail">Every function: preconditions, postconditions, pointer aliasing assumptions, error behavior. Kernel-doc style.</div>
+          <div class="task-hrs">6 hrs</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="task" onclick="toggle(this)" data-hrs="8">
+      <div class="task-row">
+        <div class="task-check"></div>
+        <div class="task-content">
+          <div class="task-name">Test suite — all edge cases</div>
+          <div class="task-detail">Zero length, NULL-adjacent (don't deref), max sizes, overlapping buffers, single byte. No test framework, raw asserts.</div>
+          <div class="task-hrs">8 hrs</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="challenge-block">
+      <p>Final challenge: compile your libc with -O2 -Wall -Wextra -pedantic. Zero warnings. Then disassemble and explain the hot loop in each function.</p>
+      <code>
+        gcc -O2 -S mylibc.c<br>
+        objdump -d mylibc.o
+      </code>
+    </div>
+  </div>
+
+  <!-- MODULE 3 -->
+  <div class="module" id="mod3">
+    <div class="module-header">
+      <div>
+        <div class="module-num">MODULE 03</div>
+        <div class="module-title">BUILD YOUR<br>ALLOCATOR</div>
+        <div class="mod-progress"><span id="m3done">0</span> / 7 tasks</div>
+      </div>
+      <div class="module-time-badge" id="m3badge">0 / 40 HRS</div>
+    </div>
+
+    <div class="task" onclick="toggle(this)" data-hrs="5">
+      <div class="task-row">
+        <div class="task-check"></div>
+        <div class="task-content">
+          <div class="task-name">Bump allocator — pure simplicity</div>
+          <div class="task-detail">Static char buf[4096]. Pointer that only moves forward. Alignment bump. No free(). Measure waste.</div>
+          <div class="task-hrs">5 hrs</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="task" onclick="toggle(this)" data-hrs="4">
+      <div class="task-row">
+        <div class="task-check"></div>
+        <div class="task-content">
+          <div class="task-name">Arena reset</div>
+          <div class="task-detail">Add arena_reset() that rewinds to base. Understand why this is safe. Use for per-request lifetimes.</div>
+          <div class="task-hrs">4 hrs</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="task" onclick="toggle(this)" data-hrs="8">
+      <div class="task-row">
+        <div class="task-check"></div>
+        <div class="task-content">
+          <div class="task-name">Free list allocator</div>
+          <div class="task-detail">Intrusive free list embedded in the free blocks. First-fit. Handle splits and coalescing. Draw the linked list.</div>
+          <div class="task-hrs">8 hrs</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="task" onclick="toggle(this)" data-hrs="6">
+      <div class="task-row">
+        <div class="task-check"></div>
+        <div class="task-content">
+          <div class="task-name">Alignment guarantees</div>
+          <div class="task-detail">Every allocation aligned to 8 or 16 bytes. Use modulo/bitwise tricks. Test with _Alignof assertions.</div>
+          <div class="task-hrs">6 hrs</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="task" onclick="toggle(this)" data-hrs="5">
+      <div class="task-row">
+        <div class="task-check"></div>
+        <div class="task-content">
+          <div class="task-name">Metadata placement strategy</div>
+          <div class="task-detail">Header before allocation vs footer after. Pros/cons of each. Draw what the buffer looks like byte-by-byte.</div>
+          <div class="task-hrs">5 hrs</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="task" onclick="toggle(this)" data-hrs="6">
+      <div class="task-row">
+        <div class="task-check"></div>
+        <div class="task-content">
+          <div class="task-name">Fragmentation analysis</div>
+          <div class="task-detail">Write a stress test that fragments your free list. Measure utilization ratio. Compare bump vs free list.</div>
+          <div class="task-hrs">6 hrs</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="task" onclick="toggle(this)" data-hrs="6">
+      <div class="task-row">
+        <div class="task-check"></div>
+        <div class="task-content">
+          <div class="task-name">Read early boot allocator source</div>
+          <div class="task-detail">Read Linux memblock.c or xv6's kalloc.c. Map each concept back to your code. Write a comparison doc.</div>
+          <div class="task-hrs">6 hrs</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="challenge-block">
+      <p>Final challenge: implement a slab-like fixed-size allocator. Pre-carved slots of one size. O(1) alloc and free. No external fragmentation.</p>
+      <code>
+        slab_alloc(pool, sizeof(node))<br>
+        slab_free(pool, ptr)<br>
+        // O(1) — prove it
+      </code>
+    </div>
+  </div>
+
+</div>
+
+<!-- SCHEDULE -->
+<div class="schedule">
+  <div class="section-label">4-WEEK STUDY SCHEDULE — 30 HRS/WEEK</div>
+  <div class="week-grid">
+    <div class="week-card active">
+      <div class="week-num">WEEK 01</div>
+      <div class="week-title">MEMORY FUNDAMENTALS</div>
+      <div class="week-hrs">▸ 30 hrs</div>
+      <div class="week-desc">Pointer arithmetic, const, struct layout. Write the memory-map program. No code without drawing the layout first.</div>
+    </div>
+    <div class="week-card">
+      <div class="week-num">WEEK 02</div>
+      <div class="week-title">ALIASING + BITFIELDS</div>
+      <div class="week-hrs">▸ 30 hrs</div>
+      <div class="week-desc">Flexible arrays, bitfields, strict aliasing, restrict. Verify with godbolt.org. Finish Module 1 challenge.</div>
+    </div>
+    <div class="week-card">
+      <div class="week-num">WEEK 03</div>
+      <div class="week-title">LIBC FROM SCRATCH</div>
+      <div class="week-hrs">▸ 30 hrs</div>
+      <div class="week-desc">memcpy through itoa. Full test suite. Zero warnings at -Wall -Wextra. Disassemble and understand output.</div>
+    </div>
+    <div class="week-card">
+      <div class="week-num">WEEK 04</div>
+      <div class="week-title">THE ALLOCATOR</div>
+      <div class="week-hrs">▸ 30 hrs</div>
+      <div class="week-desc">Bump → arena → free list → slab-like. Read kernel source. Map your code to early Linux. Write the comparison doc.</div>
+    </div>
+  </div>
+</div>
+
+<!-- RULES -->
+<div class="rules">
+  <div class="rules-col">
+    <div class="section-label">IRON RULES</div>
+    <div class="rule-item">
+      <div class="rule-num">01</div>
+      <div>
+        <div class="rule-text">Draw before you code</div>
+        <div class="rule-sub">Every struct, every buffer — sketch memory layout on paper first. Kernels live and die on layout.</div>
+      </div>
+    </div>
+    <div class="rule-item">
+      <div class="rule-num">02</div>
+      <div>
+        <div class="rule-text">No dynamic allocation in exercises</div>
+        <div class="rule-sub">malloc() is forbidden during this phase. Static buffers only. Feel the constraint the kernel lives under.</div>
+      </div>
+    </div>
+    <div class="rule-item">
+      <div class="rule-num">03</div>
+      <div>
+        <div class="rule-text">No global hidden state</div>
+        <div class="rule-sub">Every function receives what it needs. Kernels hate hidden globals — they break re-entrancy.</div>
+      </div>
+    </div>
+    <div class="rule-item">
+      <div class="rule-num">04</div>
+      <div>
+        <div class="rule-text">Compile with -O2 from day one</div>
+        <div class="rule-sub">Don't hide in debug mode. See what the compiler actually generates. Your mental model must match reality.</div>
+      </div>
+    </div>
+  </div>
+  <div class="rules-col">
+    <div class="section-label">DAILY HABIT</div>
+    <div class="rule-item">
+      <div class="rule-num">◉</div>
+      <div>
+        <div class="rule-text">Morning (1–2 hrs): Read + draw</div>
+        <div class="rule-sub">C standard, kernel docs, or the concept for today. No keyboard yet. Understand before touching code.</div>
+      </div>
+    </div>
+    <div class="rule-item">
+      <div class="rule-num">◉</div>
+      <div>
+        <div class="rule-text">Afternoon (3–5 hrs): Build + break</div>
+        <div class="rule-sub">Implement the concept. Then try to break it. Write the test that exposes the edge case.</div>
+      </div>
+    </div>
+    <div class="rule-item">
+      <div class="rule-num">◉</div>
+      <div>
+        <div class="rule-text">Evening (30 min): Read kernel source</div>
+        <div class="rule-sub">Find today's concept in Linux or xv6. One function. Read it. Don't understand everything — that's fine.</div>
+      </div>
+    </div>
+    <div class="rule-item">
+      <div class="rule-num">◉</div>
+      <div>
+        <div class="rule-text">Weekly: Write a one-page summary</div>
+        <div class="rule-sub">What you built. What surprised you. One kernel connection. Rubber duck on paper.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- OS MAP -->
+<div class="os-map">
+  <div class="section-label">PHASE 1 → KERNEL CONNECTIONS</div>
+  <div class="map-grid">
+    <div class="map-cell">
+      <div class="map-from">YOU LEARN</div>
+      <div class="map-concept">Struct layout + padding</div>
+      <div class="map-arrow">↓ BECOMES</div>
+      <div class="map-to">Page table entries, inode structures, sk_buff — every kernel object you'll touch</div>
+    </div>
+    <div class="map-cell">
+      <div class="map-from">YOU LEARN</div>
+      <div class="map-concept">memcpy / memmove</div>
+      <div class="map-arrow">↓ BECOMES</div>
+      <div class="map-to">copy_to_user, copy_from_user — the exact functions that gate kernel/userspace data transfer</div>
+    </div>
+    <div class="map-cell">
+      <div class="map-from">YOU LEARN</div>
+      <div class="map-concept">Bump allocator</div>
+      <div class="map-arrow">↓ BECOMES</div>
+      <div class="map-to">memblock — Linux's early boot allocator before the page allocator comes online</div>
+    </div>
+    <div class="map-cell">
+      <div class="map-from">YOU LEARN</div>
+      <div class="map-concept">Free list allocator</div>
+      <div class="map-arrow">↓ BECOMES</div>
+      <div class="map-to">buddy allocator — page frame management. Same ideas, planetary scale.</div>
+    </div>
+    <div class="map-cell">
+      <div class="map-from">YOU LEARN</div>
+      <div class="map-concept">Slab-like fixed alloc</div>
+      <div class="map-arrow">↓ BECOMES</div>
+      <div class="map-to">SLUB/SLAB allocator — how kmalloc() actually works for kernel objects</div>
+    </div>
+    <div class="map-cell">
+      <div class="map-from">YOU LEARN</div>
+      <div class="map-concept">Pointer arithmetic</div>
+      <div class="map-arrow">↓ BECOMES</div>
+      <div class="map-to">Memory-mapped I/O, device register access — reading hardware by dereferencing raw addresses</div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-motto">
+    THE KERNEL DOESN'T CARE ABOUT YOUR FEELINGS. <span>IT CARES ABOUT YOUR LAYOUT.</span>
+  </div>
+  <div style="font-size:0.65rem;color:var(--muted)">
+    PHASE 1 OF <span style="color:var(--green)">∞</span> <span class="blink">_</span>
+  </div>
+</footer>
+
+<script>
+  const TASKS = {
+    m1: { total: 8, totalHrs: 40 },
+    m2: { total: 7, totalHrs: 40 },
+    m3: { total: 7, totalHrs: 40 }
+  };
+
+  function getModId(task) {
+    const mod = task.closest('.module');
+    if (mod.id === 'mod1') return 'm1';
+    if (mod.id === 'mod2') return 'm2';
+    return 'm3';
+  }
+
+  function toggle(el) {
+    el.classList.toggle('done');
+    update();
+  }
+
+  function update() {
+    let totalDone = 0, totalHrsDone = 0;
+    const allMods = ['mod1','mod2','mod3'];
+    const modKeys = ['m1','m2','m3'];
+
+    allMods.forEach((modId, i) => {
+      const mod = document.getElementById(modId);
+      const tasks = mod.querySelectorAll('.task');
+      let done = 0, hrsDone = 0;
+      tasks.forEach(t => {
+        if (t.classList.contains('done')) {
+          done++;
+          hrsDone += parseInt(t.dataset.hrs) || 0;
+        }
+      });
+      const key = modKeys[i];
+      document.getElementById(key + 'done').textContent = done;
+      document.getElementById(key + 'badge').textContent = 
+        hrsDone + ' / ' + TASKS[key].totalHrs + ' HRS';
+      totalDone += done;
+      totalHrsDone += hrsDone;
+    });
+
+    const totalTasks = 8 + 7 + 7;
+    const pct = Math.round((totalDone / totalTasks) * 100);
+    document.getElementById('globalBar').style.width = pct + '%';
+    document.getElementById('globalPct').textContent = pct + '%';
+    document.getElementById('totalTime').textContent = totalHrsDone + ' / 120';
+  }
+
+  update();
+</script>
+</body>
+</html>

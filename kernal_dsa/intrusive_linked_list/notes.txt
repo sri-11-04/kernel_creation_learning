@@ -1,0 +1,113 @@
+Mission 4 task (core kernel exercise)
+
+    You must design, not copy.
+
+    Step A: Define structures
+
+        ListNode
+
+        One container struct (your choice: Task, File, Process)
+
+    Step B: Define operations
+
+        Write prototypes only (no code yet):
+
+            init list
+
+            add to head
+
+            add to tail
+
+            remove
+
+            check empty
+
+    Step C: Invariants (this is the real test)
+
+        Answer in words:
+
+            What must always be true before removal?
+             the list must be a member of the container (Task). wrong
+
+             The node must currently be linked into a valid list.
+
+                Specifically:
+
+                node->prev and node->next must not be NULL
+
+                They must correctly point to neighbors
+
+                The list invariants must hold
+
+                If you remove an unlinked node:
+                💥 memory corruption.
+
+                Membership in container is irrelevant.
+                Linkage correctness is what matters.
+
+            What must always be true after insertion?
+             must not be used after that. wrong
+
+             After insertion:
+
+                new->prev and new->next are valid
+
+                The surrounding nodes correctly reference new
+
+                The list remains circular
+
+                And importantly:
+
+                The inserted node must not already belong to another list.
+
+                Kernel rule:
+                A ListNode may belong to only one list at a time.
+
+                If you double-insert:
+                💣 You corrupt two lists.
+
+            What breaks if you allow NULL pointers?
+                circularity
+                
+                Precise answer:
+
+                    If NULL is allowed:
+
+                    You need extra branches
+
+                    Removal must check head vs non-head
+
+                    Empty list handling becomes special case logic
+
+                    Kernel lists avoid NULL because:
+
+                    Self-referential head removes all special cases.
+
+                    This reduces branch misprediction and logic errors.
+
+                    No NULL means:
+
+                    No head special-case
+
+                    No tail special-case
+
+                    Cleaner invariants
+
+            Why does the list not free memory?
+                no ownership as it just links the container.
+
+                Kernel containers:
+
+                    Manage relationships
+
+                    Never manage lifetime
+
+                    Ownership is handled by:
+
+                    Reference counting
+
+                    Slab allocator
+
+                    Explicit lifecycle management
+
+                    Lists are just topology.
