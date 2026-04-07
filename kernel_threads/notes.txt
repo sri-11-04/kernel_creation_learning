@@ -1,0 +1,38 @@
+🎯 A Challenge for You (Perfect Next Step)
+
+Implement:
+
+struct thread {
+    void* stack;
+    void* stack_pointer;
+};
+
+
+Then:
+
+Create 2 threads
+Each prints something in a loop
+Manually switch between them
+
+No OS threads allowed.
+
+⚠️ One Gentle Constraint (Important)
+
+While experimenting, keep these guardrails in mind:
+
+Each thread must have its own stack
+You should never share stack memory
+Switching threads = switching stack pointer + registers
+
+If something crashes mysteriously…
+👉 90% chance it’s stack or register corruption
+
+
+🧨 Tiny Hint (Don’t ignore this later)
+
+At some point you’ll realize:
+
+“Wait… how does a thread start executing a function if I just switched stacks?”
+
+That question?
+That’s the doorway into how function calls are faked using stack frames

@@ -1,0 +1,11 @@
+CHALLENGE 1 — "Prove the type contract" (4–6 hrs)
+    The goal is simple: make the compiler show you what a type actually means at runtime.
+    Write a program with no printf-format cheating. Allocate a single int arr[5] = {10,20,30,40,50}. Now create pointers of type int*, char*, short*, and void* all pointing to arr[0]. Step each one forward by 1 using += 1. Print the address and the value at each step.
+    What you must observe and write down:
+
+    int* jumps 4 bytes
+    char* jumps 1 byte — and you'll see the raw bytes of the int (endianness appears here)
+    short* jumps 2 bytes — you'll see halves of ints
+    void* won't compile with += 1 — document why
+
+The lesson: p + 1 is really p + 1 * sizeof(*p). The type is not decoration — it's a stride instruction.
