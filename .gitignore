@@ -1,3 +1,6 @@
 *.asm
 *.exe
-.env
+*.env
+main
+test
+_*test*

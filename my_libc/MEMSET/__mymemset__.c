@@ -46,5 +46,5 @@ void *my_memset(void *_s,int _c, size_t _n){
         *(src++) = val;
         _n--;
     }
-    return (void*) src;
+    return src;
 }
